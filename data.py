@@ -43,3 +43,5 @@ class Data:
     
 
 
+data = Data.from_json("gsm8k.json")
+train, dev, test = data.get_splits(3)

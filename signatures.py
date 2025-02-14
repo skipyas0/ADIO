@@ -7,8 +7,7 @@ class Lamarckian(dspy.Signature):
     """
     examples: str = dspy.InputField()
     supervisor_hint: str = dspy.InputField()
-    prefix_prompt: str = dspy.OutputField()
-    suffix_prompt: str = dspy.OutputField()
+    prompt_proposal: str = dspy.OutputField()
 
 class Reflective(dspy.Signature):
     """
@@ -18,7 +17,8 @@ class Reflective(dspy.Signature):
     Propose a new improved prompt based on the critique. 
     """
     prompt: str = dspy.InputField()
-    task: dspy.Example = dspy.InputField()
+    task_question: str = dspy.InputField()
+    task_gold_answer: str = dspy.InputField()
     reasoning: str = dspy.InputField()
     supervisor_hint: str = dspy.InputField()
     prompt_critique: str = dspy.OutputField()
@@ -38,7 +38,7 @@ class Crossover(dspy.Signature):
     Your supervisor tasked you with generating a prompt for a Large Language Model.
     Given two prompts, try to combine them in a fitting way to create a better prompt as a offspring.
     """
-    prompts: tuple[str, str] = dspy.InpuField()
+    prompts: tuple[str, str] = dspy.InputField()
     supervisor_hint: str = dspy.InputField()
     prompt_proposal: str = dspy.OutputField()
 
@@ -48,7 +48,8 @@ class Analyst(dspy.Signature):
     Your supervisor asked you a question and you will answer it concisely based on the provided context.
     """
     question: str = dspy.InputField()
-    context: str = dspy.InputField()
+    context: dict[str, str] = dspy.InputField()
+    answer: str = dspy.OutputField()
 
 class OptimizationSuccess(dspy.Signature):
     """Guide a prompt optimization procedure to achieve the best possible result."""

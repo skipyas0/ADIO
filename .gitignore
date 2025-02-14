@@ -1,0 +1,5 @@
+.env
+runs
+slurm
+*.json
+__pycache__

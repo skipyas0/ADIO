@@ -2,7 +2,7 @@ import dspy
 import logging
 import os
 import re
-
+from typing import Literal
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(f"{os.getenv('RUN_FOLDER')}/scores.log")
@@ -12,11 +12,12 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 class Prompt:
-    def __init__(self, prefix: str, suffix: str, gen: int):
+    def __init__(self, prefix: str, suffix: str = "", gen: int = 0, origin: str = "unknown"):
         self.prefix = prefix
         self.suffix = suffix
         self.text = prefix + suffix
         self.gen = gen
+        self.origin = origin
         valid = self.__valid()
         self.__dev_score = -1.0 if valid else 0.0
         self.__test_score = -1.0 if valid else 0.0
@@ -48,8 +49,17 @@ class Prompt:
     
     def format(self, s: str) -> str:
         return self.text.format(s)
-
-    def score(self, batch: list[dspy.Example], solve: dspy.Module, final: bool = False) -> float:
+    
+    def get_completion(self, grade: Literal[0, 1]):
+        try:
+            # get a wrong completion
+            completion = next(filter(lambda c: c[2] == grade, self.completions))
+        except StopIteration:
+            # get any completion
+            completion = self.completions[-1]
+        return completion
+    
+    def score(self, batch, solve: dspy.Module, final: bool = False) -> float:
         if final:
             gs = lambda: self.__test_score
             def ss(x): self.__test_score = x
@@ -63,13 +73,13 @@ class Prompt:
             return gs()
             
         batch_score = 0.0
-        for i, example in enumerate(batch):
+        for i, example in enumerate(batch.data):
             question = self.format(example.question)
             response = solve(question=question)
             if response:
                 solutions = response.completions
-                example = float(example.answer)
-                avg_score_on_sample = 0.0
+                gold = float(example.answer)
+                acc_score_on_sample = 0.0
                 N_SOLUTIONS = len(solutions.answer)
                 logger.debug(f"Grading problem {i+1} on split {split_name}")
                 for comp_idx in range(N_SOLUTIONS):
@@ -77,15 +87,18 @@ class Prompt:
                     solution = solutions.answer[comp_idx]
                     try:
                         solution = float(solution)
-                        grade = 1.0 if solution==example else 0.0
+                        grade = 1.0 if solution==gold else 0.0
                     except ValueError:
                         logger.warning(f"Couldn't convert '{solution}' to float")
                         grade = 0.0
-                    avg_score_on_sample += grade
-                    logger.debug(f"Completion {comp_idx+1}\nRationale:{rationale}\nSolution:{solution}\t|\tGold:{example}\nPass:{grade}\n")
-                batch_score += avg_score_on_sample / N_SOLUTIONS
+                    acc_score_on_sample += grade
+                    logger.debug(f"Completion {comp_idx+1}\nRationale:{rationale}\nSolution:{solution}\t|\tGold:{gold}\nPass:{grade}\n")
+                self.completions.append((example, response.completions.rationale[0], grade))
+                avg_score_on_sample = acc_score_on_sample / N_SOLUTIONS
+                batch.scores[i] = avg_score_on_sample
+                batch_score += avg_score_on_sample
 
-        ss(batch_score / len(batch))
+        ss(batch_score / batch.length)
         return gs()
         
     def jsoned(self) -> dict:
@@ -103,3 +116,9 @@ class Prompt:
     
     def prompt_and_perf(self):
         return (self.text, self.__dev_score)
+    
+    def get_dev(self):
+        return self.__dev_score
+    
+    def get_test(self):
+        return self.__test_score
