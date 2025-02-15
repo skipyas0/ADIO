@@ -38,7 +38,8 @@ def lamarckian(hint: str = "") -> tuple[str, float]:
     prompt = module(examples=str(train), supervisor_hint=hint).prompt_proposal
     prompt_obj = Prompt(prompt, origin="lamarckian")
     score = population.extend_and_score(prompt_obj)
-    logger.info(f"LAMARCKIAN generated prompt:\n {str(prompt_obj)}\nSCORE: {score}.")
+    population.update_tool_effectivity("lamarckian", score)
+    logger.info(f"LAMARCKIAN generated prompt:\n {str(prompt_obj)}\nSCORE: {score}\nTools:{population.tool_effectivity}")
     return (str(prompt_obj), score)
 
 def reflective(hint: str = "") -> tuple[str, float]:
@@ -68,7 +69,8 @@ def reflective(hint: str = "") -> tuple[str, float]:
     critique = completion.prompt_critique
     prompt_obj = Prompt(prompt, origin="reflective")
     score = population.extend_and_score(prompt_obj)
-    logger.info(f"REFLECTIVE generated prompt:\n {str(prompt_obj)}\nSCORE: {score}.\nOriginal prompt:\n{original.text}\nCritique:\n{critique}")
+    logger.info(f"REFLECTIVE generated prompt:\n {str(prompt_obj)}\nSCORE: {score}.\nOriginal prompt:\n{original.text}\nCritique:\n{critique}\nTools:{population.tool_effectivity}")
+    population.update_tool_effectivity("reflective", score)
     return (str(prompt_obj), score)
 
 def iterative(hint: str = "") -> tuple[str, float]:
@@ -91,7 +93,8 @@ def iterative(hint: str = "") -> tuple[str, float]:
     prompt = module(old_prompts=examples, supervisor_hint=hint).prompt_proposal
     prompt_obj = Prompt(prompt, origin="iterative")
     score = population.extend_and_score(prompt_obj)
-    logger.info(f"ITERATIVE generated prompt:\n {str(prompt_obj)}\nSCORE: {score}.\nExamples:\n{examples}")
+    logger.info(f"ITERATIVE generated prompt:\n {str(prompt_obj)}\nSCORE: {score}.\nExamples:\n{examples}\nTools:{population.tool_effectivity}")
+    population.update_tool_effectivity("iterative", score)
     return (str(prompt_obj), score)
 
 def crossover(hint: str = "") -> tuple[str, float]:
@@ -120,7 +123,8 @@ def crossover(hint: str = "") -> tuple[str, float]:
     prompt = module(prompts=tuple(prompts), supervisor_hint=hint).prompt_proposal
     prompt_obj = Prompt(prompt, origin="crossover")
     score = population.extend_and_score(prompt_obj)
-    logger.info(f"CROSSOVER generated prompt:\n {str(prompt_obj)}\n SCORE: {score}\nfrom prompt1:\n{prompts[0]}\n and from prompt2:\n{prompts[1]}.")
+    logger.info(f"CROSSOVER generated prompt:\n {str(prompt_obj)}\n SCORE: {score}\nfrom prompt1:\n{prompts[0]}\n and from prompt2:\n{prompts[1]}\nTools:{population.tool_effectivity}.")
+    population.update_tool_effectivity("crossover", score)
     return (str(prompt_obj), score)
 
 ## INSIGHT TOOLS 
@@ -151,9 +155,10 @@ def ask_analyst(question: str = "Can we optimize further or should I finish?") -
         "best prompts": "\n".join([f"{i+1}:\n{str(p)}\nwith score {p.get_dev()} was created by operation '{p.origin}'" for i,p in enumerate(population.quartile(1))]),
         "worst prompts": "\n".join([f"{i+1}:\n{str(p)}\nwith score {p.get_dev()} was created by operation '{p.origin}'" for i,p in enumerate(population.quartile(4))]),
         "solution by a good prompt": f"Good prompt:\n{population[0]}\non problem:\n{good[0]}\ngenerated reasoning\n{good[1]}",
-        "solution by a bad prompt": f"Bad prompt:\n{population[-1]}\non problem:\n{bad[0]}\ngenerated reasoning\n{bad[1]}"
+        "solution by a bad prompt": f"Bad prompt:\n{population[-1]}\non problem:\n{bad[0]}\ngenerated reasoning\n{bad[1]}",
+        "prompt creation tools statistics": "\n".join([f"Tool name {k} was used {v[0]} times with an average prompt score of {v[1]}" for k,v in population.tool_effectivity.items()])
     }
-    answer = module(question=question, context=context)
+    answer = module(question=question, context=context).answer
     log_context = '\n'.join([f'{k}: {v}' for k,v in context.items()])
     logger.info(f"ANALYST question: {question}, answer: {answer}\ncontext: {log_context}")
     return answer

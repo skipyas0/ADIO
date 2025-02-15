@@ -36,19 +36,21 @@ if __name__ == "__main__":
     dspy.configure(lm=optim_lm)
 
     
-    INITIAL_POPULATION_SIZE = 10
+    INITIAL_POPULATION_SIZE = 5
     for _ in range(INITIAL_POPULATION_SIZE):
         tools.lamarckian()
-        
-    metaprompt = """You are the directing component in a prompt optimization procedure. 
+
+    population.current_gen = 1
+    metaprompt = f"""You are the directing component in a prompt optimization procedure. 
     Use the provided tools to get information about the underlying task, inspect and modify the prompt population and check remaining budget.
-    You are the manager of this project so delegate as much of the tasks to your subordinates using the provided tools."""
+    You are the manager of this project so delegate as much of the tasks to your subordinates using the provided tools.
+    Do not forget to use all the tools at your disposal. Try to keep the population size under {4*INITIAL_POPULATION_SIZE}. Strive for achieving perfect accuracy."""
     director = dspy.ReAct(signature=signatures.OptimizationSuccess, tools=tools.tools, max_iters=100)
     res = director(introduction=metaprompt)
     t = res.trajectory
     print(t)
     with open(f"{folder}/trajectory.json", "w+") as f:
-        json.dump(t, f, indent=4)
+        json.dump(t, f, indent=4, skipkeys=True)
     population.dump()
     #for _ in range(3):
     #    for t in tools:

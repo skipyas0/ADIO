@@ -4,6 +4,7 @@ class Lamarckian(dspy.Signature):
     """
     Your supervisor tasked you with generating a prompt for a Large Language Model.
     Given several input/output examples, design a suitable zero-shot prompt for a Large Language Model for that task.
+    Use curly brackets '{}' to indicate where the problem should be inserted.
     """
     examples: str = dspy.InputField()
     supervisor_hint: str = dspy.InputField()

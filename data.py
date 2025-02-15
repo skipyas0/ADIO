@@ -43,5 +43,5 @@ class Data:
     
 
 
-data = Data.from_json("gsm8k.json")
+data = Data.from_json("recurrent.json")
 train, dev, test = data.get_splits(3)

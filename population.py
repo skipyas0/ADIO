@@ -17,6 +17,20 @@ class Population:
         self.solve = solve
         self.current_gen = 0
 
+        # "tool_name": (uses, average_score)
+        self.tool_effectivity = {
+            "lamarckian": (0,0.0),
+            "reflective": (0,0.0),
+            "iterative": (0,0.0),
+            "crossover": (0,0.0),
+        }
+
+    def update_tool_effectivity(self, tool: str, score: float) -> None:
+        count = self.tool_effectivity[tool][0] + 1
+        prev_avg = self.tool_effectivity[tool][1] 
+        new_avg = prev_avg + (score-prev_avg)/count
+        self.tool_effectivity[tool] = (count, new_avg)
+
     def extend_and_score(self, prompt: Prompt) -> None:
         score = prompt.score(dev, self.solve)
         prompt.gen = self.current_gen
